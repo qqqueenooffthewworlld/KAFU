@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'none'; frame-ancestors 'none';" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="referrer" content="no-referrer" />
+  <title>كفو | KAFU - لعبة منصات سعودية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --saudi-green: #006c35;
+      --saudi-dark: #004220;
+      --gold: #f5b942;
+      --gold-dark: #b87e14;
+      --panel-bg: rgba(16, 22, 20, 0.95);
+      --text-light: #f4f1ea;
+      --footer-h: clamp(38px, 6.5vh, 48px);
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #090b0d;
+      color: var(--text-light);
+      font-family: 'Cairo', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
+    }
+
+    /* حاوية اللعبة بنسبة 16:9 حقيقية بدون أي تمطيط أو انحشار */
+    #game-wrapper {
+      position: relative;
+      width: min(100vw, calc(100vh * (16 / 9)));
+      height: min(100vh, calc(100vw * (9 / 16)));
+      max-width: 1280px;
+      max-height: 720px;
+      background: #1a1a1a;
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 35px rgba(0, 108, 53, 0.45);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* تدوير تلقائي بالوضع الطولي على الجوال (Safari + Chrome) بدون الاعتماد على max-width */
+    @media screen and (orientation: portrait) and (hover: none) and (pointer: coarse) {
+      #game-wrapper {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: min(100vh, calc(100vw * (16 / 9)));
+        height: min(100vw, calc(100vh * (9 / 16)));
+        max-width: none;
+        max-height: none;
+        transform: translate(-50%, -50%) rotate(90deg);
+        transform-origin: center center;
+      }
+    }
+
+    canvas#gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .overlay-screen {
+      position: absolute;
+      inset: 0;
+      bottom: var(--footer-h);
+      background: var(--panel-bg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: clamp(6px, 1.6vw, 14px);
+      z-index: 20;
+      text-align: center;
+      overflow-y: auto;
+      touch-action: pan-y;
+    }
+
+    .logo-box { margin-bottom: clamp(4px, 1vh, 10px); }
+
+    .en-sub {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(7px, 1.1vw, 10px);
+      color: var(--gold);
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    .main-title {
+      font-size: clamp(24px, 4.5vw, 46px);
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 3px 3px 0 var(--saudi-green), -2px -2px 0 var(--gold-dark);
+      line-height: 1.05;
+    }
+
+    .screen-title {
+      font-size: clamp(15px, 2.4vw, 24px);
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: clamp(5px, 1vh, 10px);
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(4px, 0.8vh, 7px);
+      width: min(260px, 72%);
+    }
+
+    .pixel-btn {
+      background: #232b28;
+      color: #fff;
+      border: 2px solid #fff;
+      box-shadow: 0 3px 0 #000;
+      padding: clamp(4px, 0.8vh, 7px) 10px;
+      font-family: 'Cairo', sans-serif;
+      font-size: clamp(11px, 1.3vw, 13.5px);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .pixel-btn:hover { background: #2f3b36; border-color: var(--gold); }
+    .pixel-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+    .pixel-btn.primary { background: var(--saudi-green); border-color: var(--gold); }
+    .pixel-btn.primary:hover { background: #008542; }
+    .pixel-btn.danger { background: #8b1e1e; border-color: #ff8a8a; }
+    .pixel-btn.small { padding: 2px 7px; font-size: 11px; }
+
+    .char-cards {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 6px;
+      width: 100%;
+      max-width: 600px;
+      justify-content: center;
+    }
+
+    .char-card {
+      flex: 1;
+      background: #18201d;
+      border: 2px solid #555;
+      padding: clamp(5px, 1vw, 9px);
+      cursor: pointer;
+    }
+
+    .char-card.selected {
+      border-color: var(--gold);
+      background: #1d3329;
+      box-shadow: 0 0 12px rgba(245, 185, 66, 0.35);
+    }
+
+    .char-card canvas {
+      width: clamp(44px, 7vw, 72px);
+      height: clamp(44px, 7vw, 72px);
+      image-rendering: pixelated;
+    }
+
+    .char-card h3 { font-size: clamp(12px, 1.5vw, 15px); color: #fff; }
+
+    .ability-tag {
+      display: inline-block;
+      background: var(--gold);
+      color: #000;
+      font-size: clamp(9px, 1.1vw, 11px);
+      font-weight: 800;
+      padding: 1px 6px;
+      margin: 2px 0;
+    }
+
+    .char-card p { font-size: clamp(9.5px, 1.1vw, 11.5px); color: #ccc; line-height: 1.25; }
+    .char-progress { margin-top: 2px; font-size: 10px; color: #7ee2a8; font-weight: 800; }
+
+    .levels-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 5px;
+    }
+
+    .level-tile {
+      background: #1c2421;
+      border: 2px solid #666;
+      padding: clamp(4px, 0.9vh, 8px);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .level-tile:hover:not(.locked) { border-color: var(--gold); background: #25332d; }
+    .level-tile.completed { border-color: #38d97c; }
+    .level-tile.secret { border-color: #b84dff; background: #241533; }
+    .level-tile.locked { opacity: 0.45; cursor: not-allowed; }
+    .level-tile h4 { font-size: clamp(10.5px, 1.3vw, 13.5px); color: var(--gold); }
+    .level-tile span { font-size: 9.5px; color: #ddd; display: block; }
+
+    .secret-locked {
+      font-size: 9.5px;
+      color: #f5b942;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px 8px;
+      border: 1px dashed var(--gold);
+      margin-bottom: 5px;
+    }
+
+    .nav-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+    .howto-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 5px;
+    }
+
+    .howto-col {
+      background: #19211e;
+      border: 2px solid var(--gold);
+      padding: 6px 9px;
+      text-align: right;
+      font-size: clamp(9.5px, 1.15vw, 12px);
+      line-height: 1.45;
+    }
+
+    .howto-col h4 {
+      color: var(--gold);
+      font-size: clamp(11px, 1.3vw, 13.5px);
+      margin-bottom: 2px;
+      border-bottom: 1px dashed #444;
+    }
+
+    .howto-tip { font-size: 10.5px; color: #7ee2a8; margin-bottom: 6px; font-weight: 800; }
+
+    .info-panel {
+      background: #19211e;
+      border: 2px solid var(--gold);
+      padding: 8px 14px;
+      max-width: 440px;
+      width: 85%;
+      margin-bottom: 8px;
+      text-align: right;
+      font-size: 12.5px;
+    }
+
+    .settings-box label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+      font-weight: 800;
+    }
+
+    .pixel-hr { border: 0; border-top: 2px dashed #444; margin: 7px 0; }
+    .result-text { font-size: clamp(12px, 1.6vw, 16px); margin-bottom: 3px; }
+    .result-stats { font-size: clamp(11px, 1.4vw, 14px); color: var(--gold); font-weight: 800; margin-bottom: 8px; }
+
+    #hud {
+      position: absolute;
+      inset: 0;
+      bottom: var(--footer-h);
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px 10px;
+    }
+
+    .hud-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+    .hud-box {
+      background: rgba(0, 0, 0, 0.72);
+      border: 2px solid var(--gold);
+      padding: 2px 7px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: clamp(10px, 1.2vw, 12.5px);
+      font-weight: 800;
+      pointer-events: auto;
+    }
+
+    .badge { background: var(--saudi-green); padding: 1px 5px; font-size: 10px; }
+    .coin-icon { color: var(--gold); font-size: 12px; }
+    .hearts { color: #ff4d4d; letter-spacing: 1px; }
+
+    .hud-progress-wrap {
+      flex: 1;
+      max-width: 200px;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid #fff;
+    }
+
+    #hud-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--saudi-green);
+    }
+
+    /* منطقة تحكم احترافية للجوال: سحب مستمر للحركة + أزرار قفز وقدرة كبيرة ومريحة */
+    #mobile-controls {
+      position: relative;
+      width: 100%;
+      height: 46%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+
+    #dpad-zone {
+      pointer-events: auto;
+      display: flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.18);
+      touch-action: none;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      pointer-events: auto;
+      padding: 4px;
+      touch-action: none;
+    }
+
+    .touch-btn {
+      width: clamp(54px, 8.5vw, 72px);
+      height: clamp(54px, 8.5vw, 72px);
+      background: rgba(20, 28, 24, 0.55);
+      border: 2.5px solid rgba(255, 255, 255, 0.85);
+      color: #fff;
+      font-size: clamp(20px, 3vw, 26px);
+      font-weight: 900;
+      border-radius: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.05s, background-color 0.05s;
+    }
+
+    .touch-btn.pressed {
+      background: rgba(245, 185, 66, 0.85);
+      color: #000;
+      transform: scale(0.94);
+    }
+
+    .touch-btn.ability {
+      border-color: var(--gold);
+      color: var(--gold);
+      width: clamp(50px, 7.8vw, 66px);
+      height: clamp(50px, 7.8vw, 66px);
+    }
+
+    .touch-btn.ability.pressed {
+      background: var(--gold);
+      color: #000;
+    }
+
+    #saudi-footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--footer-h);
+      background: var(--saudi-dark);
+      border-top: 2px solid var(--gold);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 30;
+      line-height: 1.12;
+      padding: 2px 6px;
+    }
+
+    .footer-top { font-size: clamp(7.5px, 1vw, 10px); font-weight: 800; color: var(--gold); }
+    .footer-dua { font-size: clamp(7.5px, 0.95vw, 9.5px); color: #e8f5ee; }
+    .footer-rights { font-size: clamp(7px, 0.9vw, 9px); color: #b7e4c7; font-weight: 600; }
+    .footer-rights a {
+      color: var(--gold);
+      text-decoration: none;
+      font-family: monospace, sans-serif;
+      direction: ltr;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-wrapper">
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+    <!-- شريط المعلومات أثناء اللعب (HUD) -->
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-box">
+          <span id="hud-char-badge" class="badge">نورة</span>
+          <span id="hud-level-name">الصحراء</span>
+        </div>
+        <div class="hud-progress-wrap">
+          <div id="hud-progress-bar"></div>
+        </div>
+        <div class="hud-box">
+          <span class="coin-icon">●</span>
+          <span id="hud-coins">0</span>
+          <span class="hearts" id="hud-lives">♥♥♥</span>
+          <button id="btn-pause" class="pixel-btn small" aria-label="إيقاف مؤقت">❚❚</button>
+        </div>
+      </div>
+
+      <!-- أزرار التحكم باللمس للجوال والتابلت -->
+      <div id="mobile-controls">
+        <div id="dpad-zone">
+          <div id="m-right" class="touch-btn" role="button" aria-label="يمين">▶</div>
+          <div id="m-left" class="touch-btn" role="button" aria-label="يسار">◀</div>
+        </div>
+        <div class="actions">
+          <div id="m-ability" class="touch-btn ability" role="button" aria-label="القدرة الخاصة">⚡</div>
+          <div id="m-jump" class="touch-btn jump" role="button" aria-label="قفز">▲</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. الشاشة الرئيسية -->
+    <div id="screen-main" class="overlay-screen">
+      <div class="logo-box">
+        <div class="en-sub">KAFU · THE SAUDI PLATFORMER</div>
+        <h1 class="main-title">كـفـو</h1>
+      </div>
+      <div class="menu-buttons">
+        <button id="btn-start-play" class="pixel-btn primary">ابدأ اللعب</button>
+        <button id="btn-select-char" class="pixel-btn">اختيار الشخصية (<span id="main-selected-char">نورة</span>)</button>
+        <button id="btn-how-to" class="pixel-btn">تعليمات اللعب</button>
+        <button id="btn-settings" class="pixel-btn">الإعدادات</button>
+        <button id="btn-quick-mute" class="pixel-btn secondary">الموسيقى: مفعّلة 🔊</button>
+      </div>
+    </div>
+
+    <!-- 2. شاشة اختيار الشخصية -->
+    <div id="screen-char" class="overlay-screen hidden">
+      <h2 class="screen-title">اختر بطلك</h2>
+      <div class="char-cards">
+        <div class="char-card selected" data-char="noura">
+          <canvas id="preview-noura" width="80" height="80"></canvas>
+          <h3>نورة | NOURA</h3>
+          <div class="ability-tag">القدرة: القفزة المزدوجة</div>
+          <p>تقفز مرتين في الهواء للوصول لأعلى المنصات بمرونة عالية.</p>
+          <div class="char-progress" id="prog-noura">المراحل المنجزة: 0/5</div>
+        </div>
+        <div class="char-card" data-char="rashed">
+          <canvas id="preview-rashed" width="80" height="80"></canvas>
+          <h3>راشد | RASHED</h3>
+          <div class="ability-tag">القدرة: الاندفاع السريع</div>
+          <p>يندفع بسرعة خاطفة لتجاوز الحواجز والمسافات الطويلة.</p>
+          <div class="char-progress" id="prog-rashed">المراحل المنجزة: 0/5</div>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button id="btn-char-to-levels" class="pixel-btn primary">تأكيد واختيار المرحلة</button>
+        <button class="pixel-btn back-main">الرجوع للقائمة</button>
+      </div>
+    </div>
+
+    <!-- 3. شاشة اختيار المراحل -->
+    <div id="screen-levels" class="overlay-screen hidden">
+      <h2 class="screen-title">اختر المرحلة (<span id="levels-char-label">نورة</span>)</h2>
+      <div class="levels-grid" id="levels-container"></div>
+      <div id="secret-banner" class="secret-locked">
+        🔒 المرحلة السرية (الجمل في الصحراء): أكمل المراحل الخمس بنورة وراشد لفتحها!
+      </div>
+      <div class="nav-row">
+        <button id="btn-levels-to-char" class="pixel-btn">تغيير الشخصية</button>
+        <button class="pixel-btn back-main">القائمة الرئيسية</button>
+      </div>
+    </div>
+
+    <!-- 4. شاشة التعليمات -->
+    <div id="screen-howto" class="overlay-screen hidden">
+      <h2 class="screen-title">تعليمات اللعب (الجوال والكمبيوتر)</h2>
+      <div class="howto-grid">
+        <div class="howto-col">
+          <h4>💻 الكمبيوتر / اللابتوب</h4>
+          <p>• <strong>الحركة:</strong> الأسهم (◀ ▶) أو A / D</p>
+          <p>• <strong>القفز:</strong> Space أو السهم للأعلى</p>
+          <p>• <strong>قدرة نورة:</strong> Space مرتين بالهواء</p>
+          <p>• <strong>قدرة راشد:</strong> Shift أو E للاندفاع</p>
+          <p>• <strong>إيقاف مؤقت:</strong> زر Esc</p>
+        </div>
+        <div class="howto-col">
+          <h4>📱 الجوال / التابلت</h4>
+          <p>• <strong>الحركة:</strong> اسحب إصبعك بين ◀ و ▶</p>
+          <p>• <strong>القفز:</strong> زر ▲ أسفل اليسار</p>
+          <p>• <strong>قدرة نورة:</strong> اضغط ▲ مرتين بالهواء</p>
+          <p>• <strong>قدرة راشد:</strong> اضغط زر ⚡ للاندفاع</p>
+          <p>• <strong>إيقاف مؤقت:</strong> زر ❚❚ أعلى الشاشة</p>
+        </div>
+      </div>
+      <p class="howto-tip">💡 تلميح: اقفز فوق الأعداء لهزيمتهم، واجمع العملات الذهبية في كل مرحلة!</p>
+      <button class="pixel-btn back-main">رجوع</button>
+    </div>
+
+    <!-- 5. شاشة الإعدادات -->
+    <div id="screen-settings" class="overlay-screen hidden">
+      <h2 class="screen-title">الإعدادات</h2>
+      <div class="info-panel settings-box">
+        <label>
+          <span>صوت الموسيقى:</span>
+          <input type="checkbox" id="chk-music" checked />
+        </label>
+        <label>
+          <span>المؤثرات الصوتية:</span>
+          <input type="checkbox" id="chk-sfx" checked />
+        </label>
+        <hr class="pixel-hr">
+        <button id="btn-reset-save" class="pixel-btn danger small">مسح التقدم المحفوظ</button>
+      </div>
+      <button class="pixel-btn back-main">رجوع</button>
+    </div>
+
+    <!-- 6. شاشة الإيقاف المؤقت -->
+    <div id="screen-pause" class="overlay-screen hidden">
+      <h2 class="screen-title">إيقاف مؤقت</h2>
+      <div class="menu-buttons">
+        <button id="btn-resume" class="pixel-btn primary">استئناف اللعب</button>
+        <button id="btn-restart-level" class="pixel-btn">إعادة المرحلة</button>
+        <button id="btn-pause-levels" class="pixel-btn">اختيار المراحل</button>
+        <button class="pixel-btn back-main">القائمة الرئيسية</button>
+      </div>
+    </div>
+
+    <!-- 7. شاشة الفوز / الخسارة / فتح السرية -->
+    <div id="screen-result" class="overlay-screen hidden">
+      <h2 class="screen-title" id="result-title">كفو!</h2>
+      <p id="result-msg" class="result-text">أنهيت المرحلة بنجاح!</p>
+      <div class="result-stats" id="result-stats">العملات المجمعة: 0</div>
+      <div class="menu-buttons">
+        <button id="btn-next-level" class="pixel-btn primary">المرحلة التالية</button>
+        <button id="btn-retry-level" class="pixel-btn">إعادة المحاولة</button>
+        <button id="btn-result-levels" class="pixel-btn">قائمة المراحل</button>
+        <button class="pixel-btn back-main">القائمة الرئيسية</button>
+      </div>
+    </div>
+
+    <!-- الهوية الوطنية الثابتة وحقوق الملكية -->
+    <footer id="saudi-footer">
+      <div class="footer-top">🇸🇦 كفو · صنع بأيادٍ سعودية | MADE WITH PRIDE IN SAUDI ARABIA</div>
+      <div class="footer-dua">اللهم احفظ وطننا، وأدم عليه أمنه وأمانه وعزّه وازدهاره.</div>
+      <div class="footer-rights">© 2026 جميع الحقوق محفوظة · للتواصل: <a href="mailto:ranaworrk@gmail.com">ranaworrk@gmail.com</a></div>
+    </footer>
+  </div>
+
+  <script>
+    'use strict';
+
+    // 1. نظام الحفظ الآمن
+    const SaveSystem = {
+      key: 'KAFU_SAUDI_GAME_PROD_V8',
+      data: {
+        selectedChar: 'noura',
+        coins: 0,
+        nouraCompleted: [false, false, false, false, false],
+        rashedCompleted: [false, false, false, false, false],
+        secretCompleted: false,
+        musicEnabled: true,
+        sfxEnabled: true
+      },
+      load() {
+        try {
+          const raw = window.localStorage.getItem(this.key);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.selectedChar === 'noura' || parsed.selectedChar === 'rashed') {
+              this.data.selectedChar = parsed.selectedChar;
+            }
+            if (typeof parsed.coins === 'number' && parsed.coins >= 0 && parsed.coins < 999999) {
+              this.data.coins = Math.floor(parsed.coins);
+            }
+            if (Array.isArray(parsed.nouraCompleted) && parsed.nouraCompleted.length === 5) {
+              this.data.nouraCompleted = parsed.nouraCompleted.map(Boolean);
+            }
+            if (Array.isArray(parsed.rashedCompleted) && parsed.rashedCompleted.length === 5) {
+              this.data.rashedCompleted = parsed.rashedCompleted.map(Boolean);
+            }
+            this.data.secretCompleted = Boolean(parsed.secretCompleted);
+            this.data.musicEnabled = parsed.musicEnabled !== false;
+            this.data.sfxEnabled = parsed.sfxEnabled !== false;
+          }
+        } catch (e) {}
+      },
+      save() {
+        try {
+          window.localStorage.setItem(this.key, JSON.stringify(this.data));
+        } catch (e) {}
+      },
+      reset() {
+        try {
+          window.localStorage.removeItem(this.key);
+        } catch (e) {}
+        window.location.reload();
+      },
+      isSecretUnlocked() {
+        return this.data.nouraCompleted.every(Boolean) && this.data.rashedCompleted.every(Boolean);
+      }
+    };
+    SaveSystem.load();
+
+    // 2. محرك الصوت الخفيف والسريع
+    const SoundEngine = {
+      ctx: null,
+      bgmTimer: null,
+      step: 0,
+      init() {
+        try {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+          }
+          if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        } catch (e) {}
+      },
+      playTone(freq, type, duration, vol = 0.12, slideTo = null) {
+        if (!SaveSystem.data.sfxEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+          gain.gain.setValueAtTime(vol, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (e) {}
+      },
+      sfx(name) {
+        switch (name) {
+          case 'jump': this.playTone(260, 'square', 0.14, 0.1, 520); break;
+          case 'doubleJump': this.playTone(420, 'triangle', 0.18, 0.14, 780); break;
+          case 'dash': this.playTone(600, 'sawtooth', 0.16, 0.12, 180); break;
+          case 'coin':
+            this.playTone(987, 'square', 0.07, 0.1);
+            setTimeout(() => this.playTone(1318, 'square', 0.13, 0.1), 65);
+            break;
+          case 'stomp': this.playTone(180, 'square', 0.12, 0.15, 70); break;
+          case 'hurt': this.playTone(200, 'sawtooth', 0.3, 0.16, 65); break;
+          case 'camel': this.playTone(110, 'sawtooth', 0.4, 0.18, 75); break;
+          case 'win':
+            [523, 659, 783, 1046].forEach((f, i) => {
+              setTimeout(() => this.playTone(f, 'square', 0.18, 0.12), i * 100);
+            });
+            break;
+        }
+      },
+      startMusic(themeIndex) {
+        this.stopMusic();
+        if (!SaveSystem.data.musicEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const scales = [
+          [293, 311, 370, 392, 440, 466, 554, 587],
+          [330, 392, 440, 494, 587, 659, 587, 494],
+          [261, 293, 330, 392, 440, 392, 330, 293],
+          [220, 261, 330, 392, 440, 523, 440, 330],
+          [196, 293, 392, 466, 587, 466, 392, 293],
+          [146, 155, 185, 196, 146, 155, 220, 196]
+        ];
+        const tempos = [230, 290, 200, 190, 165, 150];
+        const notes = scales[themeIndex] || scales[0];
+        this.step = 0;
+
+        this.bgmTimer = setInterval(() => {
+          if (!SaveSystem.data.musicEnabled || Game.state !== 'PLAYING' || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const freq = notes[this.step % notes.length];
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = themeIndex === 4 ? 'sawtooth' : 'triangle';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.18);
+            this.step++;
+          } catch (e) {}
+        }, tempos[themeIndex] || 220);
+      },
+      stopMusic() {
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+    };
+
+    // 3. مصفوفات رسومات Chibi Pixel Art مع تخزين مسبق
+    const PixelSprites = {
+      palette: {
+        '.': null,
+        'K': '#111217',
+        'D': '#222530',
+        'G': '#353949',
+        'S': '#fbd5bc',
+        'T': '#e5b394',
+        'C': '#f490a3',
+        'E': '#1c120c',
+        'W': '#ffffff',
+        'V': '#e2e8f0',
+        'H': '#3e2415',
+        'R': '#c81d25',
+        'M': '#961218',
+        'Y': '#f5b942',
+        'B': '#6e472b',
+        'L': '#a67246',
+        'P': '#7e22ce'
+      },
+      nouraIdle: [
+        ".......KKKKKKKKKK.......",
+        ".....KKDDDDDDDDDDKK.....",
+        "....KDDGGGGGGGGGGDDK....",
+        "...KDDHHHHHHHHHHHHDDK...",
+        "...KDHHSSSSSSSSSSSHDK...",
+        "..KDDHSSSSSSSSSSSSSHDDK.",
+        "..KDSSSSSSSSSSSSSSSSSDK.",
+        "..KDSSSEESSSSSSEESSSSDK.",
+        "..KDSSSWESSSSSSWESSSSDK.",
+        "..KDSSSEESSSSSSEESSSSDK.",
+        "..KDSSCCSSSSSSSSCCSSSDK.",
+        "...KDSSSSSSCCSSSSSSSDK..",
+        "...KDDSSSSSSSSSSSSDDK...",
+        "....KDDDDDDDDDDDDDDK....",
+        "...KKKKKKKKKKKKKKKKKK...",
+        "..KDDKKKKKKYYKKKKKKDDK..",
+        "..KDDKKKKKYYYYKKKKKDDK..",
+        ".KDD.KKKKKKYYKKKKKK.DDK.",
+        ".KDD.KKKKKKKKKKKKKK.DDK.",
+        ".KD..KKKKKKKKKKKKKK..DK.",
+        ".SS..KKKKKKKKKKKKKK..SS.",
+        ".....KKKKKKKKKKKKKK.....",
+        "....KKKKKKKKKKKKKKKK....",
+        "....KKKKKKKKKKKKKKKK....",
+        "....KKKKKKYYYYKKKKKK....",
+        "...KKKKKKKKKKKKKKKKKK...",
+        "...KKKKKKKKKKKKKKKKKK...",
+        "...KKKKKKKYYYYKKKKKKK...",
+        "....KKKKKKKKKKKKKKKK....",
+        "......TTTT....TTTT......",
+        ".....KKKKK....KKKKK.....",
+        "....KKKKKK....KKKKKK...."
+      ],
+      nouraRun: [
+        ".......KKKKKKKKKK.......",
+        ".....KKDDDDDDDDDDKK.....",
+        "....KDDGGGGGGGGGGDDK....",
+        "...KDDHHHHHHHHHHHHDDK...",
+        "...KDHHSSSSSSSSSSSHDK...",
+        "..KDDHSSSSSSSSSSSSSHDDK.",
+        "..KDSSSSSSSSSSSSSSSSSDK.",
+        "..KDSSSEESSSSSSEESSSSDK.",
+        "..KDSSSWESSSSSSWESSSSDK.",
+        "..KDSSSEESSSSSSEESSSSDK.",
+        "..KDSSCCSSSSSSSSCCSSSDK.",
+        "...KDSSSSSSCCSSSSSSSDK..",
+        "...KDDSSSSSSSSSSSSDDK...",
+        "....KDDDDDDDDDDDDDDK....",
+        "...KKKKKKKKKKKKKKKKKK...",
+        "..KDDKKKKKKYYKKKKKKDDK..",
+        ".KDD.KKKKKYYYYKKKKK.DDK.",
+        "KDD..KKKKKKKKKKKKKK..DDK",
+        "SS...KKKKKKKKKKKKKK...SS",
+        ".....KKKKKKKKKKKKKK.....",
+        "....KKKKKKKKKKKKKKKK....",
+        "...KKKKKKKKKKKKKKKKKK...",
+        "..KKKKKKKKYYYYKKKKKKKK..",
+        "..KKKKKKKKKKKKKKKKKKKK..",
+        ".KKKKKKKKKYYYYKKKKKKKKK.",
+        "..KKKKKKKKKKKKKKKKKKKK..",
+        "....TTTT........TTTT....",
+        "...KKKKK........KKKKK...",
+        "..KKKKKK........KKKKKK..",
+        "........................",
+        "........................",
+        "........................"
+      ],
+      rashedIdle: [
+        "......RRRRRRRRRRRR......",
+        "....RRRWRWRWRWRWRRRR....",
+        "...RRRRWRWRWRWRWRRRRR...",
+        "...KKKKKKKKKKKKKKKKKK...",
+        "..MKKKKKKKKKKKKKKKKKKM..",
+        "..MRSSSSSSSSSSSSSSSSRM..",
+        "..MRSSSSSSSSSSSSSSSSRM..",
+        "..MRSSSEESSSSSSEESSSRM..",
+        "..MRSSSWESSSSSSWESSSRM..",
+        "..MRSSSEESSSSSSEESSSRM..",
+        "..MRSSSSSSSTTTSSSSSSRM..",
+        "..MRRSSSSSSSSSSSSSSRRM..",
+        "...MRRRSSSSSSSSSSSRRM...",
+        "...MRRRWWWWWWWWWWWRRM...",
+        "..MRR.VWWWWYYWWWWV.RRM..",
+        "..MRR.VWWWWYYWWWWV.RRM..",
+        ".MRR..VWWWWYYWWWWV..RRM.",
+        ".MR...VWWWWWWWWWWV...RM.",
+        ".SS...VWWWWWWWWWWV...SS.",
+        "......VWWWWWWWWWWV......",
+        "......VWWWWWWWWWWV......",
+        "......VWWWWWWWWWWV......",
+        "......VWWWWWWWWWWV......",
+        "......VWWWWWWWWWWV......",
+        "......VWWWWWWWWWWV......",
+        "......VWWWWWWWWWWV......",
+        "......VWWWWWWWWWWV......",
+        "......VVVVVVVVVVVV......",
+        ".......TTTT..TTTT.......",
+        "......KKKKK..KKKKK......",
+        ".....KKKKKK..KKKKKK.....",
+        "........................"
+      ],
+      rashedRun: [
+        "......RRRRRRRRRRRR......",
+        "....RRRWRWRWRWRWRRRR....",
+        "...RRRRWRWRWRWRWRRRRR...",
+        "...KKKKKKKKKKKKKKKKKK...",
+        "..MKKKKKKKKKKKKKKKKKKM..",
+        "..MRSSSSSSSSSSSSSSSSRM..",
+        "..MRSSSSSSSSSSSSSSSSRM..",
+        "..MRSSSEESSSSSSEESSSRM..",
+        "..MRSSSWESSSSSSWESSSRM..",
+        "..MRSSSEESSSSSSEESSSRM..",
+        "..MRSSSSSSSTTTSSSSSSRM..",
+        "..MRRSSSSSSSSSSSSSSRRM..",
+        "...MRRRSSSSSSSSSSSRRM...",
+        "...MRRRWWWWWWWWWWWRRM...",
+        "..MRR.VWWWWYYWWWWV.RRM..",
+        ".MRR..VWWWWYYWWWWV..RRM.",
+        "MRR...VWWWWYYWWWWV...RRM",
+        "SS....VWWWWWWWWWWV....SS",
+        "......VWWWWWWWWWWV......",
+        ".....VWWWWWWWWWWWWV.....",
+        "....VWWWWWWWWWWWWWWV....",
+        "...VWWWWWWWWWWWWWWWWV...",
+        "...VWWWWWWWWWWWWWWWWV...",
+        "...VVVVVVVVVVVVVVVVVV...",
+        "....TTTT........TTTT....",
+        "...KKKKK........KKKKK...",
+        "..KKKKKK........KKKKKK..",
+        "........................",
+        "........................",
+        "........................",
+        "........................",
+        "........................"
+      ],
+      enemyBug: [
+        "............",
+        "...PP..PP...",
+        "..PPPPPPPP..",
+        ".PPWPPPPWPP.",
+        ".PPPPPPPPPP.",
+        "PP.PPPPPP.PP",
+        "P..PP..PP..P"
+      ],
+      camel: [
+        "..............LLLL..",
+        ".............LLLLLL.",
+        ".............LLKLLL.",
+        "............LLLLLL..",
+        ".....BBBB...LLLL....",
+        "...BBBBBBBBLLLL.....",
+        "..BBBBBBBBBBLL......",
+        ".BBBBBBBBBBBB.......",
+        ".BBBBBBBBBBBB.......",
+        "..BB..BB..BB........",
+        "..BB..BB..BB........",
+        ".KK..KK..KK........."
+      ],
+      cache: {},
+      getSpriteCanvas(key, matrix, flipX = false) {
+        const cacheKey = key + (flipX ? '_L' : '_R');
+        if (this.cache[cacheKey]) return this.cache[cacheKey];
+        const h = matrix.length;
+        const w = matrix[0].length;
+        const off = document.createElement('canvas');
+        off.width = w;
+        off.height = h;
+        const octx = off.getContext('2d');
+        for (let r = 0; r < h; r++) {
+          for (let c = 0; c < w; c++) {
+            const color = this.palette[matrix[r][c]];
+            if (color) {
+              octx.fillStyle = color;
+              const drawC = flipX ? (w - 1 - c) : c;
+              octx.fillRect(drawC, r, 1, 1);
+            }
+          }
+        }
+        this.cache[cacheKey] = off;
+        return off;
+      },
+      drawSprite(ctx, key, matrix, x, y, drawW, drawH, flipX = false) {
+        const img = this.getSpriteCanvas(key, matrix, flipX);
+        ctx.drawImage(img, (x + 0.5) | 0, (y + 0.5) | 0, drawW, drawH);
+      }
+    };
+
+    function renderCharPreviews() {
+      const cN = document.getElementById('preview-noura').getContext('2d');
+      cN.imageSmoothingEnabled = false;
+      cN.clearRect(0, 0, 80, 80);
+      PixelSprites.drawSprite(cN, 'nouraIdle', PixelSprites.nouraIdle, 10, 4, 60, 74, false);
+
+      const cR = document.getElementById('preview-rashed').getContext('2d');
+      cR.imageSmoothingEnabled = false;
+      cR.clearRect(0, 0, 80, 80);
+      PixelSprites.drawSprite(cR, 'rashedIdle', PixelSprites.rashedIdle, 10, 4, 60, 74, false);
+    }
+
+    // 4. بيانات المراحل الست + تخزين مسبق لخلفية السماء
+    const LEVELS_DATA = [
+      { id: 0, name: 'المرحلة 1: الصحراء', en: 'THE DESERT', skyTop: '#f59e0b', skyBottom: '#fde68a', groundColor: '#d97706', groundTop: '#fbbf24', length: 4200, wind: 0, isNight: false },
+      { id: 1, name: 'المرحلة 2: الواحة', en: 'THE OASIS', skyTop: '#0284c7', skyBottom: '#bae6fd', groundColor: '#15803d', groundTop: '#4ade80', length: 4400, wind: 0, isNight: false },
+      { id: 2, name: 'المرحلة 3: الحارة', en: 'THE NEIGHBORHOOD', skyTop: '#ea580c', skyBottom: '#fed7aa', groundColor: '#9a6b43', groundTop: '#c29263', length: 4600, wind: 0, isNight: false },
+      { id: 3, name: 'المرحلة 4: الجبال', en: 'THE MOUNTAINS', skyTop: '#475569', skyBottom: '#cbd5e1', groundColor: '#334155', groundTop: '#64748b', length: 4800, wind: -0.45, isNight: false },
+      { id: 4, name: 'المرحلة 5: الرياض', en: 'RIYADH', skyTop: '#1e1b4b', skyBottom: '#4338ca', groundColor: '#1f2937', groundTop: '#006c35', length: 5000, wind: 0, isNight: true },
+      { id: 5, name: 'المرحلة السرية: الجمل في الصحراء', en: 'THE CAMEL', skyTop: '#050814', skyBottom: '#172554', groundColor: '#92400e', groundTop: '#d97706', length: 8500, wind: -0.25, isNight: true, isSecret: true }
+    ];
+
+    const SkyCache = {};
+    function getSkyCanvas(idx) {
+      if (SkyCache[idx]) return SkyCache[idx];
+      const cfg = LEVELS_DATA[idx];
+      const off = document.createElement('canvas');
+      off.width = 800;
+      off.height = 450;
+      const octx = off.getContext('2d', { alpha: false });
+      const grad = octx.createLinearGradient(0, 0, 0, 450);
+      grad.addColorStop(0, cfg.skyTop);
+      grad.addColorStop(1, cfg.skyBottom);
+      octx.fillStyle = grad;
+      octx.fillRect(0, 0, 800, 450);
+      SkyCache[idx] = off;
+      return off;
+    }
+
+    function buildLevelEntities(levelIdx) {
+      const cfg = LEVELS_DATA[levelIdx];
+      const platforms = [];
+      const coins = [];
+      const enemies = [];
+      const hazards = [];
+
+      platforms.push({ x: 0, y: 380, w: levelIdx === 5 ? 850 : 650, h: 70, type: 'solid' });
+
+      let cursorX = levelIdx === 5 ? 850 : 650;
+      let stepIndex = 0;
+
+      while (cursorX < cfg.length - 500) {
+        stepIndex++;
+        const gap = levelIdx === 5 ? 90 + (stepIndex % 3) * 20 : 70 + (stepIndex % 3) * 20;
+        cursorX += gap;
+
+        const platW = levelIdx === 5 ? 170 + (stepIndex % 2) * 60 : 210 + (stepIndex % 3) * 70;
+        const platY = 380;
+
+        let pType = 'solid';
+        if (levelIdx === 5 && stepIndex % 3 === 0) pType = 'crumble';
+        if (levelIdx === 1 && stepIndex % 2 === 0) pType = 'bridge';
+
+        platforms.push({ x: cursorX, y: platY, w: platW, h: 70, type: pType, timer: 0, fallen: false });
+
+        if (stepIndex % 2 === 1) {
+          const highY = 255 - (stepIndex % 2) * 35;
+          const isMoving = (levelIdx === 3 || levelIdx === 4 || levelIdx === 5) && stepIndex % 4 === 1;
+          platforms.push({
+            x: cursorX + 30,
+            y: highY,
+            w: 110,
+            h: 18,
+            type: isMoving ? 'moving' : 'floating',
+            baseX: cursorX + 30,
+            range: 60
+          });
+
+          for (let c = 0; c < 3; c++) {
+            coins.push({ x: cursorX + 45 + c * 28, y: highY - 26, collected: false });
+          }
+        } else {
+          for (let c = 0; c < 3; c++) {
+            coins.push({ x: cursorX + 40 + c * 32, y: platY - 28, collected: false });
+          }
+        }
+
+        if (stepIndex % 3 === 2 && platW > 220) {
+          hazards.push({
+            x: cursorX + platW / 2 - 14,
+            y: platY - 26,
+            w: 28,
+            h: 26,
+            kind: levelIdx === 4 ? 'car' : 'spike'
+          });
+        }
+
+        if (stepIndex % 2 === 0 && platW >= 180) {
+          enemies.push({
+            x: cursorX + 40,
+            y: platY - 24,
+            w: 36,
+            h: 24,
+            minX: cursorX + 10,
+            maxX: cursorX + platW - 46,
+            vx: (levelIdx === 5 ? 2.6 : 1.6 + levelIdx * 0.2),
+            alive: true
+          });
+        }
+
+        cursorX += platW;
+      }
+
+      platforms.push({ x: cfg.length - 450, y: 380, w: 550, h: 70, type: 'solid' });
+      const goal = { x: cfg.length - 220, y: 260, w: 40, h: 120 };
+
+      let camel = null;
+      if (levelIdx === 5) {
+        camel = { x: 20, y: 284, w: 140, h: 96, vx: 3.3, chargeTimer: 0 };
+      }
+
+      return { cfg, platforms, coins, enemies, hazards, goal, camel };
+    }
+
+    // 5. المحرك الرئيسي
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+    ctx.imageSmoothingEnabled = false;
+
+    const Game = {
+      state: 'MENU',
+      levelIdx: 0,
+      world: null,
+      cameraX: 0,
+      levelCoins: 0,
+      lives: 3,
+      particles: [],
+      keys: { left: false, right: false },
+      lastFrameTime: 0,
+      lastPct: -1,
+      simTime: 0,
+      player: {
+        x: 100,
+        y: 280,
+        w: 36,
+        h: 58,
+        vx: 0,
+        vy: 0,
+        grounded: false,
+        jumpsLeft: 2,
+        dashTimer: 0,
+        dashCooldown: 0,
+        facingRight: true,
+        invuln: 0,
+        animFrame: 0
+      },
+
+      startLevel(idx) {
+        this.levelIdx = idx;
+        this.world = buildLevelEntities(idx);
+        this.cameraX = 0;
+        this.levelCoins = 0;
+        this.lives = idx === 5 ? 2 : 3;
+        this.particles = [];
+        this.lastPct = -1;
+        this.simTime = 0;
+        this.keys.left = false;
+        this.keys.right = false;
+        this.respawnPlayer(true);
+        this.state = 'PLAYING';
+        showScreen('hud');
+        updateHUD();
+        SoundEngine.startMusic(idx);
+      },
+
+      respawnPlayer(fullReset = false) {
+        const p = this.player;
+        if (fullReset) {
+          p.x = this.levelIdx === 5 ? 340 : 120;
+          p.y = 260;
+          if (this.world.camel) this.world.camel.x = 20;
+        } else {
+          const safePlat = this.world.platforms.find(pl => pl.type === 'solid' && pl.x <= p.x && pl.x + pl.w >= p.x - 300)
+            || this.world.platforms[0];
+          p.x = safePlat.x + 80;
+          p.y = safePlat.y - 85;
+          if (this.world.camel) this.world.camel.x = Math.max(0, p.x - 320);
+        }
+        p.vx = 0;
+        p.vy = 0;
+        p.grounded = false;
+        p.jumpsLeft = SaveSystem.data.selectedChar === 'noura' ? 2 : 1;
+        p.dashTimer = 0;
+        p.invuln = 70;
+      },
+
+      triggerJump() {
+        if (this.state !== 'PLAYING') return;
+        const p = this.player;
+        const isNoura = SaveSystem.data.selectedChar === 'noura';
+        if (p.grounded) {
+          p.vy = -12.2;
+          p.grounded = false;
+          p.jumpsLeft = isNoura ? 1 : 0;
+          SoundEngine.sfx('jump');
+        } else if (isNoura && p.jumpsLeft > 0) {
+          p.vy = -11.2;
+          p.jumpsLeft = 0;
+          SoundEngine.sfx('doubleJump');
+          this.spawnParticles(p.x + p.w / 2, p.y + p.h, '#f5b942', 8);
+        }
+      },
+
+      triggerAbility() {
+        if (this.state !== 'PLAYING') return;
+        const p = this.player;
+        const isRashed = SaveSystem.data.selectedChar === 'rashed';
+        if (isRashed && p.dashCooldown <= 0 && p.dashTimer <= 0) {
+          p.dashTimer = 14;
+          p.dashCooldown = 45;
+          p.vy = 0;
+          SoundEngine.sfx('dash');
+          this.spawnParticles(p.x + p.w / 2, p.y + p.h / 2, '#ffffff', 8);
+        } else if (!isRashed) {
+          this.triggerJump();
+        }
+      },
+
+      spawnParticles(x, y, color, count) {
+        if (this.particles.length > 40) this.particles.splice(0, count);
+        for (let i = 0; i < count; i++) {
+          this.particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            life: 18,
+            color
+          });
+        }
+      },
+
+      hurtPlayer() {
+        const p = this.player;
+        if (p.invuln > 0) return;
+        this.lives--;
+        SoundEngine.sfx('hurt');
+        this.spawnParticles(p.x + 18, p.y + 28, '#ff4d4d', 10);
+        updateHUD();
+        if (this.lives <= 0) {
+          this.endLevel(false);
+        } else {
+          this.respawnPlayer(false);
+        }
+      },
+
+      endLevel(won) {
+        this.state = 'RESULT';
+        this.keys.left = false;
+        this.keys.right = false;
+        SoundEngine.stopMusic();
+        const titleEl = document.getElementById('result-title');
+        const msgEl = document.getElementById('result-msg');
+        const statsEl = document.getElementById('result-stats');
+        const nextBtn = document.getElementById('btn-next-level');
+
+        if (won) {
+          SoundEngine.sfx('win');
+          SaveSystem.data.coins += this.levelCoins;
+          const wasUnlocked = SaveSystem.isSecretUnlocked();
+
+          if (this.levelIdx < 5) {
+            if (SaveSystem.data.selectedChar === 'noura') {
+              SaveSystem.data.nouraCompleted[this.levelIdx] = true;
+            } else {
+              SaveSystem.data.rashedCompleted[this.levelIdx] = true;
+            }
+          } else {
+            SaveSystem.data.secretCompleted = true;
+          }
+          SaveSystem.save();
+
+          const nowUnlocked = SaveSystem.isSecretUnlocked();
+
+          if (this.levelIdx === 5) {
+            titleEl.textContent = 'كفو! أنهيت التحدي الأسطوري!';
+            msgEl.textContent = 'هربت من الجمل في صحراء الليل وأثبتّ جدارتك!';
+            nextBtn.classList.add('hidden');
+          } else if (!wasUnlocked && nowUnlocked) {
+            titleEl.textContent = '🎉 انفتحت المرحلة السرية!';
+            msgEl.textContent = 'أنهيت جميع المراحل بنورة وراشد! تحدي (الجمل في الصحراء) متاح الآن!';
+            nextBtn.classList.remove('hidden');
+            nextBtn.textContent = 'ادخل المرحلة السرية!';
+          } else {
+            titleEl.textContent = 'كفو عليك!';
+            msgEl.textContent = `أتممت ${this.world.cfg.name} بنجاح!`;
+            nextBtn.classList.remove('hidden');
+            nextBtn.textContent = this.levelIdx < 4 ? 'المرحلة التالية' : 'قائمة المراحل';
+          }
+          statsEl.textContent = `العملات المجمعة: ${this.levelCoins} | الإجمالي: ${SaveSystem.data.coins}`;
+        } else {
+          titleEl.textContent = 'حاول مرة ثانية!';
+          msgEl.textContent = 'نفدت محاولاتك، لا تستسلم يا بطل!';
+          statsEl.textContent = `العملات في هذه المحاولة: ${this.levelCoins}`;
+          nextBtn.classList.add('hidden');
+        }
+
+        showScreen('screen-result');
+      },
+
+      update(dt) {
+        if (this.state !== 'PLAYING') return;
+        this.simTime += dt * 16.666;
+        const p = this.player;
+        const cfg = this.world.cfg;
+
+        if (p.invuln > 0) p.invuln = Math.max(0, p.invuln - dt);
+        if (p.dashCooldown > 0) p.dashCooldown = Math.max(0, p.dashCooldown - dt);
+
+        const moveSpeed = 5.4;
+        if (p.dashTimer > 0) {
+          p.dashTimer = Math.max(0, p.dashTimer - dt);
+          p.vx = p.facingRight ? 12.5 : -12.5;
+          if (((p.dashTimer * 10) | 0) % 3 === 0) {
+            this.spawnParticles(p.x + 18, p.y + 28, '#38bdf8', 2);
+          }
+        } else {
+          if (this.keys.left) {
+            p.vx = -moveSpeed;
+            p.facingRight = false;
+          } else if (this.keys.right) {
+            p.vx = moveSpeed;
+            p.facingRight = true;
+          } else {
+            p.vx *= Math.pow(0.72, dt);
+            if (Math.abs(p.vx) < 0.2) p.vx = 0;
+          }
+          if (cfg.wind !== 0 && !p.grounded) {
+            p.vx += cfg.wind * dt;
+          }
+        }
+
+        p.x += p.vx * dt;
+        if (p.x < 10) p.x = 10;
+        if (p.x > cfg.length - 60) p.x = cfg.length - 60;
+
+        const prevBottom = p.y + p.h;
+        if (p.dashTimer <= 0) {
+          p.vy += 0.58 * dt;
+          if (p.vy > 14) p.vy = 14;
+        }
+        p.y += p.vy * dt;
+        p.grounded = false;
+
+        for (let i = 0; i < this.world.platforms.length; i++) {
+          const pl = this.world.platforms[i];
+          if (pl.type === 'moving') {
+            pl.x = pl.baseX + Math.sin(this.simTime * 0.0028) * pl.range;
+          }
+          if (pl.type === 'crumble' && pl.timer > 0) {
+            pl.timer += dt;
+            if (pl.timer > 35) pl.fallen = true;
+          }
+          if (pl.fallen) continue;
+
+          if (
+            p.vy >= 0 &&
+            p.x + p.w - 6 > pl.x &&
+            p.x + 6 < pl.x + pl.w &&
+            p.y + p.h >= pl.y &&
+            prevBottom <= pl.y + 16
+          ) {
+            p.y = pl.y - p.h;
+            p.vy = 0;
+            p.grounded = true;
+            p.jumpsLeft = SaveSystem.data.selectedChar === 'noura' ? 2 : 1;
+            if (pl.type === 'crumble' && pl.timer === 0) pl.timer = 1;
+          }
+        }
+
+        if (p.y > canvas.height + 30) {
+          this.hurtPlayer();
+          return;
+        }
+
+        for (let i = 0; i < this.world.coins.length; i++) {
+          const c = this.world.coins[i];
+          if (!c.collected && Math.abs(p.x + 18 - c.x) < 28 && Math.abs(p.y + 28 - c.y) < 32) {
+            c.collected = true;
+            this.levelCoins++;
+            SoundEngine.sfx('coin');
+            this.spawnParticles(c.x, c.y, '#f5b942', 4);
+            updateHUD();
+          }
+        }
+
+        for (let i = 0; i < this.world.hazards.length; i++) {
+          const h = this.world.hazards[i];
+          if (p.x + p.w - 8 > h.x && p.x + 8 < h.x + h.w && p.y + p.h - 4 > h.y && p.y + 6 < h.y + h.h) {
+            this.hurtPlayer();
+            return;
+          }
+        }
+
+        for (let i = 0; i < this.world.enemies.length; i++) {
+          const en = this.world.enemies[i];
+          if (!en.alive) continue;
+          en.x += en.vx * dt;
+          if (en.x <= en.minX) { en.x = en.minX; en.vx = Math.abs(en.vx); }
+          if (en.x >= en.maxX) { en.x = en.maxX; en.vx = -Math.abs(en.vx); }
+
+          if (p.x + p.w - 6 > en.x && p.x + 6 < en.x + en.w && p.y + p.h > en.y && p.y < en.y + en.h) {
+            if (p.vy > 0 && prevBottom <= en.y + 16) {
+              en.alive = false;
+              p.vy = -9.0;
+              SoundEngine.sfx('stomp');
+              this.spawnParticles(en.x + 18, en.y + 12, '#a855f7', 8);
+            } else {
+              this.hurtPlayer();
+              return;
+            }
+          }
+        }
+
+        if (this.world.camel) {
+          const cm = this.world.camel;
+          cm.chargeTimer += dt;
+          const phase = cm.chargeTimer % 200;
+          const speedBoost = phase > 145 ? 1.38 : 1.0;
+          if (phase > 145 && phase - dt <= 145) SoundEngine.sfx('camel');
+          cm.x += cm.vx * speedBoost * dt;
+
+          if (p.x - (cm.x + cm.w) > 250) {
+            cm.x = p.x - cm.w - 250;
+          }
+
+          if (cm.x + cm.w - 20 >= p.x + 6) {
+            this.hurtPlayer();
+            return;
+          }
+        }
+
+        const g = this.world.goal;
+        if (p.x + p.w > g.x && p.x < g.x + g.w) {
+          this.endLevel(true);
+          return;
+        }
+
+        const camOffset = this.levelIdx === 5 ? 340 : 240;
+        this.cameraX = Math.max(0, Math.min(p.x - camOffset, cfg.length - canvas.width));
+        const pct = Math.min(100, ((p.x / (cfg.length - 250)) * 100) | 0);
+        if (pct !== this.lastPct) {
+          this.lastPct = pct;
+          document.getElementById('hud-progress-bar').style.width = pct + '%';
+        }
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const pt = this.particles[i];
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          pt.life -= dt;
+          if (pt.life <= 0) this.particles.splice(i, 1);
+        }
+
+        if (Math.abs(p.vx) > 0.4) p.animFrame += dt;
+      },
+
+      drawBackground() {
+        const cfg = this.world.cfg;
+        ctx.drawImage(getSkyCanvas(this.levelIdx), 0, 0);
+
+        const parallax = this.cameraX * 0.35;
+
+        if (cfg.isNight) {
+          ctx.fillStyle = '#ffffff';
+          for (let i = 0; i < 28; i++) {
+            const sx = (((i * 197 - parallax * 0.3) % 800 + 800) % 800) | 0;
+            const sy = (i * 53) % 210;
+            ctx.fillRect(sx, sy, 3, 3);
+          }
+        }
+
+        if (this.levelIdx === 0 || this.levelIdx === 5) {
+          ctx.fillStyle = this.levelIdx === 5 ? '#78350f' : '#f59e0b';
+          const shift = parallax % 260;
+          for (let i = -1; i < 5; i++) {
+            const dx = i * 260 - shift;
+            ctx.beginPath();
+            ctx.moveTo(dx, 380);
+            ctx.lineTo(dx + 130, 270);
+            ctx.lineTo(dx + 260, 380);
+            ctx.fill();
+          }
+        } else if (this.levelIdx === 1) {
+          ctx.fillStyle = '#0ea5e9';
+          ctx.fillRect(0, 330, 800, 60);
+          for (let i = 0; i < 5; i++) {
+            const tx = (((i * 220 - parallax) % 1100 + 1100) % 1100 - 100) | 0;
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(tx, 230, 14, 110);
+            ctx.fillStyle = '#16a34a';
+            ctx.fillRect(tx - 24, 215, 62, 20);
+          }
+        } else if (this.levelIdx === 2) {
+          for (let i = 0; i < 6; i++) {
+            const hx = (((i * 210 - parallax) % 1260 + 1260) % 1260 - 150) | 0;
+            ctx.fillStyle = '#b47b4c';
+            ctx.fillRect(hx, 230, 130, 150);
+            ctx.fillStyle = '#d6a174';
+            for (let t = 0; t < 5; t++) ctx.fillRect(hx + t * 26 + 4, 218, 16, 12);
+            ctx.fillStyle = '#451a03';
+            ctx.fillRect(hx + 50, 310, 30, 70);
+          }
+        } else if (this.levelIdx === 3) {
+          for (let i = 0; i < 5; i++) {
+            const mx = (((i * 250 - parallax) % 1250 + 1250) % 1250 - 200) | 0;
+            ctx.fillStyle = '#64748b';
+            ctx.beginPath();
+            ctx.moveTo(mx, 380);
+            ctx.lineTo(mx + 125, 130);
+            ctx.lineTo(mx + 250, 380);
+            ctx.fill();
+          }
+        } else if (this.levelIdx === 4) {
+          const kX = (320 - (parallax * 0.25) % 600) | 0;
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(kX, 90, 68, 290);
+          ctx.fillStyle = '#1e1b4b';
+          ctx.fillRect(kX + 18, 105, 32, 42);
+          const fX = kX + 260;
+          ctx.fillStyle = '#cbd5e1';
+          ctx.beginPath();
+          ctx.moveTo(fX, 380);
+          ctx.lineTo(fX + 35, 110);
+          ctx.lineTo(fX + 70, 380);
+          ctx.fill();
+          ctx.fillStyle = '#f5b942';
+          ctx.fillRect(fX + 27, 155, 16, 16);
+        }
+      },
+
+      draw() {
+        if (this.state !== 'PLAYING' && this.state !== 'PAUSED') return;
+        this.drawBackground();
+
+        const cam = this.cameraX | 0;
+        const viewRight = cam + 900;
+        const viewLeft = cam - 100;
+
+        ctx.save();
+        ctx.translate(-cam, 0);
+
+        const cfg = this.world.cfg;
+
+        for (let i = 0; i < this.world.platforms.length; i++) {
+          const pl = this.world.platforms[i];
+          if (pl.fallen || pl.x + pl.w < viewLeft || pl.x > viewRight) continue;
+          const px = pl.x | 0;
+          if (pl.type === 'bridge') {
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(px, pl.y, pl.w, 22);
+          } else if (pl.type === 'crumble') {
+            ctx.fillStyle = pl.timer > 0 ? '#ef4444' : '#b45309';
+            ctx.fillRect(px, pl.y, pl.w, pl.h);
+          } else {
+            ctx.fillStyle = cfg.groundColor;
+            ctx.fillRect(px, pl.y, pl.w, pl.h);
+            ctx.fillStyle = cfg.groundTop;
+            ctx.fillRect(px, pl.y, pl.w, 10);
+          }
+        }
+
+        const bobBase = Math.sin(this.simTime * 0.006) * 3;
+        for (let i = 0; i < this.world.coins.length; i++) {
+          const c = this.world.coins[i];
+          if (c.collected || c.x < viewLeft || c.x > viewRight) continue;
+          const cy = (c.y - 8 + bobBase) | 0;
+          ctx.fillStyle = '#f5b942';
+          ctx.fillRect(c.x - 8, cy, 16, 16);
+          ctx.fillStyle = '#fef08a';
+          ctx.fillRect(c.x - 4, cy + 4, 6, 6);
+        }
+
+        for (let i = 0; i < this.world.hazards.length; i++) {
+          const h = this.world.hazards[i];
+          if (h.x + h.w < viewLeft || h.x > viewRight) continue;
+          if (h.kind === 'car') {
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(h.x - 10, h.y + 4, 48, 22);
+            ctx.fillStyle = '#111';
+            ctx.fillRect(h.x - 4, h.y + 20, 10, 8);
+            ctx.fillRect(h.x + 22, h.y + 20, 10, 8);
+          } else {
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(h.x + 8, h.y, 12, h.h);
+            ctx.fillRect(h.x, h.y + 8, 28, 8);
+          }
+        }
+
+        for (let i = 0; i < this.world.enemies.length; i++) {
+          const en = this.world.enemies[i];
+          if (!en.alive || en.x + en.w < viewLeft || en.x > viewRight) continue;
+          PixelSprites.drawSprite(ctx, 'enemyBug', PixelSprites.enemyBug, en.x, en.y, 36, 21, en.vx < 0);
+        }
+
+        if (this.world.camel) {
+          const cm = this.world.camel;
+          const gallopBob = Math.sin(this.simTime * 0.025) * 4;
+          PixelSprites.drawSprite(ctx, 'camel', PixelSprites.camel, cm.x, cm.y + gallopBob, 160, 96, false);
+        }
+
+        const g = this.world.goal;
+        if (g.x + 60 >= viewLeft && g.x <= viewRight) {
+          ctx.fillStyle = '#e5e7eb';
+          ctx.fillRect(g.x, g.y, 6, g.h);
+          ctx.fillStyle = '#006c35';
+          ctx.fillRect(g.x + 6, g.y + 4, 54, 34);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(g.x + 14, g.y + 18, 38, 4);
+        }
+
+        const p = this.player;
+        if (p.invuln === 0 || (((p.invuln / 4) | 0) % 2 === 0)) {
+          const isNoura = SaveSystem.data.selectedChar === 'noura';
+          const moving = Math.abs(p.vx) > 0.5 && (((p.animFrame / 6) | 0) % 2 === 1);
+          const key = isNoura
+            ? (moving ? 'nouraRun' : 'nouraIdle')
+            : (moving ? 'rashedRun' : 'rashedIdle');
+          PixelSprites.drawSprite(ctx, key, PixelSprites[key], p.x - 6, p.y - 6, 48, 64, !p.facingRight);
+        }
+
+        for (let i = 0; i < this.particles.length; i++) {
+          const pt = this.particles[i];
+          ctx.fillStyle = pt.color;
+          ctx.fillRect(pt.x | 0, pt.y | 0, 4, 4);
+        }
+
+        ctx.restore();
+      }
+    };
+
+    function gameLoop(timestamp) {
+      if (!Game.lastFrameTime) Game.lastFrameTime = timestamp;
+      const rawDt = (timestamp - Game.lastFrameTime) / 16.6667;
+      Game.lastFrameTime = timestamp;
+      const dt = Math.min(rawDt, 2.5);
+
+      if (dt > 0) {
+        Game.update(dt);
+        Game.draw();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.overlay-screen, #hud').forEach(el => el.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-char-badge').textContent = SaveSystem.data.selectedChar === 'noura' ? 'نورة' : 'راشد';
+      document.getElementById('hud-level-name').textContent = LEVELS_DATA[Game.levelIdx].name;
+      document.getElementById('hud-coins').textContent = SaveSystem.data.coins + Game.levelCoins;
+      document.getElementById('hud-lives').textContent = '♥'.repeat(Math.max(0, Game.lives));
+    }
+
+    function refreshMenusUI() {
+      const charName = SaveSystem.data.selectedChar === 'noura' ? 'نورة' : 'راشد';
+      document.getElementById('main-selected-char').textContent = charName;
+      document.getElementById('levels-char-label').textContent = charName;
+
+      const nDone = SaveSystem.data.nouraCompleted.filter(Boolean).length;
+      const rDone = SaveSystem.data.rashedCompleted.filter(Boolean).length;
+      document.getElementById('prog-noura').textContent = `المراحل المنجزة: ${nDone}/5`;
+      document.getElementById('prog-rashed').textContent = `المراحل المنجزة: ${rDone}/5`;
+
+      document.querySelectorAll('.char-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.char === SaveSystem.data.selectedChar);
+      });
+
+      const grid = document.getElementById('levels-container');
+      grid.innerHTML = '';
+      const completedArr = SaveSystem.data.selectedChar === 'noura'
+        ? SaveSystem.data.nouraCompleted
+        : SaveSystem.data.rashedCompleted;
+
+      LEVELS_DATA.forEach((lvl, idx) => {
+        const tile = document.createElement('div');
+        tile.className = 'level-tile';
+        if (lvl.isSecret) {
+          const unlocked = SaveSystem.isSecretUnlocked();
+          tile.classList.add('secret');
+          if (!unlocked) tile.classList.add('locked');
+          tile.innerHTML = `<h4>${unlocked ? '🐪 الجمل في الصحراء' : '🔒 مرحلة سرية'}</h4><span>${unlocked ? 'التحدي الأسطوري' : 'مغلقة'}</span>`;
+          if (unlocked) tile.onclick = () => Game.startLevel(idx);
+        } else {
+          const isDone = completedArr[idx];
+          if (isDone) tile.classList.add('completed');
+          tile.innerHTML = `<h4>${lvl.name}</h4><span>${isDone ? 'مكتملة ✔' : lvl.en}</span>`;
+          tile.onclick = () => Game.startLevel(idx);
+        }
+        grid.appendChild(tile);
+      });
+
+      const banner = document.getElementById('secret-banner');
+      if (SaveSystem.isSecretUnlocked()) {
+        banner.textContent = '✨ مبروك! تم فتح المرحلة السرية: الجمل في الصحراء!';
+      }
+    }
+
+    document.getElementById('btn-start-play').onclick = () => {
+      refreshMenusUI();
+      showScreen('screen-levels');
+    };
+    document.getElementById('btn-select-char').onclick = () => {
+      refreshMenusUI();
+      renderCharPreviews();
+      showScreen('screen-char');
+    };
+    document.getElementById('btn-how-to').onclick = () => showScreen('screen-howto');
+    document.getElementById('btn-settings').onclick = () => showScreen('screen-settings');
+
+    document.getElementById('btn-quick-mute').onclick = (e) => {
+      SaveSystem.data.musicEnabled = !SaveSystem.data.musicEnabled;
+      document.getElementById('chk-music').checked = SaveSystem.data.musicEnabled;
+      e.target.textContent = SaveSystem.data.musicEnabled ? 'الموسيقى: مفعّلة 🔊' : 'الموسيقى: مكتومة 🔇';
+      SaveSystem.save();
+    };
+
+    document.querySelectorAll('.char-card').forEach(card => {
+      card.onclick = () => {
+        SaveSystem.data.selectedChar = card.dataset.char;
+        SaveSystem.save();
+        refreshMenusUI();
+      };
+    });
+
+    document.getElementById('btn-char-to-levels').onclick = () => {
+      refreshMenusUI();
+      showScreen('screen-levels');
+    };
+    document.getElementById('btn-levels-to-char').onclick = () => {
+      renderCharPreviews();
+      showScreen('screen-char');
+    };
+
+    document.querySelectorAll('.back-main').forEach(btn => {
+      btn.onclick = () => {
+        Game.state = 'MENU';
+        SoundEngine.stopMusic();
+        refreshMenusUI();
+        showScreen('screen-main');
+      };
+    });
+
+    document.getElementById('btn-pause').onclick = () => {
+      Game.state = 'PAUSED';
+      showScreen('screen-pause');
+    };
+    document.getElementById('btn-resume').onclick = () => {
+      Game.state = 'PLAYING';
+      Game.lastFrameTime = 0;
+      showScreen('hud');
+    };
+    document.getElementById('btn-restart-level').onclick = () => Game.startLevel(Game.levelIdx);
+    document.getElementById('btn-pause-levels').onclick = () => {
+      Game.state = 'MENU';
+      SoundEngine.stopMusic();
+      refreshMenusUI();
+      showScreen('screen-levels');
+    };
+
+    document.getElementById('btn-retry-level').onclick = () => Game.startLevel(Game.levelIdx);
+    document.getElementById('btn-result-levels').onclick = () => {
+      refreshMenusUI();
+      showScreen('screen-levels');
+    };
+    document.getElementById('btn-next-level').onclick = () => {
+      if (SaveSystem.isSecretUnlocked() && Game.levelIdx === 4) {
+        Game.startLevel(5);
+      } else if (Game.levelIdx < 4) {
+        Game.startLevel(Game.levelIdx + 1);
+      } else {
+        refreshMenusUI();
+        showScreen('screen-levels');
+      }
+    };
+
+    document.getElementById('chk-music').onchange = (e) => {
+      SaveSystem.data.musicEnabled = e.target.checked;
+      document.getElementById('btn-quick-mute').textContent = e.target.checked ? 'الموسيقى: مفعّلة 🔊' : 'الموسيقى: مكتومة 🔇';
+      SaveSystem.save();
+    };
+    document.getElementById('chk-sfx').onchange = (e) => {
+      SaveSystem.data.sfxEnabled = e.target.checked;
+      SaveSystem.save();
+    };
+    document.getElementById('btn-reset-save').onclick = () => SaveSystem.reset();
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') Game.keys.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') Game.keys.right = true;
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        if (!e.repeat) Game.triggerJump();
+      }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyE') {
+        if (!e.repeat) Game.triggerAbility();
+      }
+      if (e.code === 'Escape' && Game.state === 'PLAYING') {
+        Game.state = 'PAUSED';
+        showScreen('screen-pause');
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') Game.keys.left = false;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') Game.keys.right = false;
+    });
+
+    // نظام تحكم باللمس فائق الاستجابة يدعم السحب المستمر واللمس المتعدد (Multi-touch)
+    const dpadZone = document.getElementById('dpad-zone');
+    const btnLeft = document.getElementById('m-left');
+    const btnRight = document.getElementById('m-right');
+
+    function updateDpadFromTouches(touches) {
+      let leftActive = false;
+      let rightActive = false;
+      const rLeft = btnLeft.getBoundingClientRect();
+      const rRight = btnRight.getBoundingClientRect();
+      const pad = 14;
+
+      for (let i = 0; i < touches.length; i++) {
+        const t = touches[i];
+        if (t.clientX >= rLeft.left - pad && t.clientX <= rLeft.right + pad &&
+            t.clientY >= rLeft.top - pad && t.clientY <= rLeft.bottom + pad) {
+          leftActive = true;
+        }
+        if (t.clientX >= rRight.left - pad && t.clientX <= rRight.right + pad &&
+            t.clientY >= rRight.top - pad && t.clientY <= rRight.bottom + pad) {
+          rightActive = true;
+        }
+      }
+
+      Game.keys.left = leftActive;
+      Game.keys.right = rightActive;
+      btnLeft.classList.toggle('pressed', leftActive);
+      btnRight.classList.toggle('pressed', rightActive);
+    }
+
+    dpadZone.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      updateDpadFromTouches(e.touches);
+    }, { passive: false });
+
+    dpadZone.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      updateDpadFromTouches(e.touches);
+    }, { passive: false });
+
+    dpadZone.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      updateDpadFromTouches(e.touches);
+    }, { passive: false });
+
+    dpadZone.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      updateDpadFromTouches([]);
+    }, { passive: false });
+
+    // دعم الماوس أيضاً للتجربة على المتصفح
+    btnLeft.addEventListener('mousedown', () => { Game.keys.left = true; btnLeft.classList.add('pressed'); });
+    btnRight.addEventListener('mousedown', () => { Game.keys.right = true; btnRight.classList.add('pressed'); });
+    window.addEventListener('mouseup', () => {
+      Game.keys.left = false;
+      Game.keys.right = false;
+      btnLeft.classList.remove('pressed');
+      btnRight.classList.remove('pressed');
+    });
+
+    function bindActionBtn(id, actionFn) {
+      const el = document.getElementById(id);
+      el.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        el.classList.add('pressed');
+        actionFn();
+      }, { passive: false });
+      el.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        el.classList.remove('pressed');
+      }, { passive: false });
+      el.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        el.classList.remove('pressed');
+      }, { passive: false });
+      el.addEventListener('mousedown', () => {
+        el.classList.add('pressed');
+        actionFn();
+      });
+      el.addEventListener('mouseup', () => el.classList.remove('pressed'));
+    }
+
+    bindActionBtn('m-jump', () => Game.triggerJump());
+    bindActionBtn('m-ability', () => Game.triggerAbility());
+
+    for (let i = 0; i < 6; i++) getSkyCanvas(i);
+    PixelSprites.getSpriteCanvas('nouraIdle', PixelSprites.nouraIdle, false);
+    PixelSprites.getSpriteCanvas('nouraIdle', PixelSprites.nouraIdle, true);
+    PixelSprites.getSpriteCanvas('nouraRun', PixelSprites.nouraRun, false);
+    PixelSprites.getSpriteCanvas('nouraRun', PixelSprites.nouraRun, true);
+    PixelSprites.getSpriteCanvas('rashedIdle', PixelSprites.rashedIdle, false);
+    PixelSprites.getSpriteCanvas('rashedIdle', PixelSprites.rashedIdle, true);
+    PixelSprites.getSpriteCanvas('rashedRun', PixelSprites.rashedRun, false);
+    PixelSprites.getSpriteCanvas('rashedRun', PixelSprites.rashedRun, true);
+
+    refreshMenusUI();
+    renderCharPreviews();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
